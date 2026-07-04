@@ -1,175 +1,107 @@
-# Slate — Implementation Plan
+# Slate — Implementation Plan (Updated)
 
-> A Notion-like, block-based note-taking app. Purely client-side, connecting directly to Firebase with Google login.
+> A Notion-like app with pages + generic databases. Everything is an **Item**.
+
+---
 
 ## Tech Stack
 
-| Layer | Choice | Rationale |
-|---|---|---|
-| **Build / Dev** | Vite | Fast HMR, first-class TypeScript support |
-| **UI Framework** | React 18 + TypeScript | Type-safe, component-driven |
-| **Editor** | [BlockNote](https://www.blocknotejs.org/) | Block-based editor with slash commands (`/`), drag-and-drop, and rich formatting out of the box |
-| **Styling** | Tailwind CSS v4 | Rapid UI building per your plan |
-| **Auth** | Firebase Auth (Google Sign-In) | Zero-backend auth flow |
-| **Database** | Cloud Firestore | Real-time sync, offline support, per-user security rules |
-| **Hosting** | Firebase Hosting (optional) | Free tier, one-command deploy |
+| Layer | Choice |
+|---|---|
+| **Build** | Vite |
+| **UI** | React 18 + TypeScript |
+| **Editor** | BlockNote |
+| **Styling** | Tailwind CSS v4 |
+| **Auth** | Firebase Auth (Google Sign-In) |
+| **Database** | Cloud Firestore |
 
 ---
 
-## Architecture Overview
+## Architecture
 
 ```mermaid
 graph LR
-    A[React App<br/>Vite + TS] -->|Google Sign-In| B[Firebase Auth]
-    A -->|Read/Write pages| C[Cloud Firestore]
-    A -->|BlockNote| D[Block Editor]
-    B -->|User UID| C
-    C -->|Security Rules| E[Per-user data isolation]
+    A[React SPA] -->|Google Sign-In| B[Firebase Auth]
+    A -->|CRUD items| C[Firestore]
+    A -->|Rich text| D[BlockNote Editor]
+    C -->|One collection| E["items (pages + databases + rows)"]
 ```
 
-This is a **purely client-side SPA** — no backend server. Firebase handles auth and storage directly from the browser.
+**Unified model:** pages, databases, and database rows are all stored in `/users/{uid}/items/`.
 
 ---
 
-## Phase 1: Project Scaffolding & Auth
+## Phase 1: Scaffolding + Auth (~30 min)
 
-### 1.1 Initialize Project
-- Scaffold with `npx -y create-vite@latest ./ --template react-ts`
-- Install dependencies:
-  - `@blocknote/core`, `@blocknote/react`, `@blocknote/mantine` (BlockNote + its UI)
-  - `firebase` (Firebase SDK)
-  - `tailwindcss` (v4)
-  - `react-router-dom` (client-side routing)
-  - `@mantine/core` (BlockNote's default UI layer depends on Mantine)
+- Scaffold Vite + React + TypeScript
+- Install deps: `firebase`, `@blocknote/*`, `tailwindcss`, `react-router-dom`, `@mantine/core`
+- Firebase config from `.env`
+- Google Sign-In (AuthContext, LoginPage, ProtectedRoute)
 
-### 1.2 Firebase Setup
-- Create a Firebase project config file (`src/config/firebase.ts`)
-- Initialize Firebase App, Auth, and Firestore instances
-- User will need to provide their own Firebase project credentials (via `.env` or config)
-
-### 1.3 Google Authentication
-- **Component:** `LoginPage.tsx` — full-screen login with Google sign-in button
-- **Component:** `AuthProvider.tsx` — React context wrapping `onAuthStateChanged`
-- **Hook:** `useAuth()` — returns `{ user, loading, signIn, signOut }`
-- **Route guard:** `ProtectedRoute.tsx` — redirects unauthenticated users to login
-
-### Deliverable
-- User can sign in with Google and see a protected dashboard
+**Deliverable:** User can sign in and see a protected dashboard.
 
 ---
 
-## Phase 2: Page Management (CRUD)
+## Phase 2: Items CRUD + Sidebar (~45 min)
 
-### 2.1 Firestore Data Model
+- Firestore service: `createItem`, `getTopLevelItems`, `getItem`, `updateItem`, `archiveItem`
+- Sidebar: lists top-level items (pages + databases), distinguished by icon/type
+- Create new page / new database from sidebar
+- Click page → opens BlockNote editor
+- Click database → opens database view
+- Auto-save with debounce
 
-```
-/users/{uid}/pages/{pageId}
-  ├── title: string
-  ├── content: JSON (BlockNote document)
-  ├── icon: string (emoji)
-  ├── createdAt: Timestamp
-  ├── updatedAt: Timestamp
-  └── isArchived: boolean
-```
-
-### 2.2 Firestore Security Rules
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId}/pages/{pageId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
-
-### 2.3 Data Layer
-- **Service:** `src/services/pages.ts` — Firestore CRUD operations:
-  - `createPage(uid)` → returns new page ID
-  - `getPages(uid)` → list all pages (title, icon, updatedAt)
-  - `getPage(uid, pageId)` → full page with content
-  - `updatePage(uid, pageId, data)` → partial update (title, content)
-  - `deletePage(uid, pageId)` → soft delete (set `isArchived: true`)
-
-### Deliverable
-- Pages can be created, listed, opened, updated, and archived
+**Deliverable:** Users can create/open/edit pages and create databases.
 
 ---
 
-## Phase 3: Core UI — Sidebar + Editor
+## Phase 3: Database — Table View + Row CRUD (~1.5 hrs)
 
-### 3.1 Layout
-```
-┌──────────────────────────────────────────┐
-│  Sidebar (250px)  │    Editor Area       │
-│                   │                      │
-│  🔍 Search        │  Page Title (h1)     │
-│  ──────────────── │                      │
-│  📄 Page 1        │  BlockNote Editor    │
-│  📄 Page 2        │  (slash commands,    │
-│  📄 Page 3        │   drag & drop,       │
-│  ...              │   rich blocks)       │
-│                   │                      │
-│  ──────────────── │                      │
-│  + New Page       │                      │
-│  👤 User / Logout │                      │
-└──────────────────────────────────────────┘
-```
+- Database settings: add/edit/remove properties (columns)
+- Table view: spreadsheet-like grid showing rows × properties
+- Add row, edit inline, delete row
+- Click row → opens as full page with BlockNote editor
+- Property type renderers: text input, number input, select dropdown, date picker, checkbox, multi-select tags
 
-### 3.2 Components
-
-| Component | Description |
-|---|---|
-| `AppLayout.tsx` | Main layout with sidebar + editor area |
-| `Sidebar.tsx` | Collapsible sidebar with page list, search, new page button |
-| `PageList.tsx` | Lists pages with icon + title, click to navigate |
-| `PageListItem.tsx` | Single page entry with hover actions (rename, delete) |
-| `PageEditor.tsx` | BlockNote editor + editable title input |
-| `SearchBar.tsx` | Client-side search/filter over page titles |
-| `UserMenu.tsx` | Avatar, display name, sign-out button |
-
-### 3.3 Routing
-```
-/login          → LoginPage
-/               → AppLayout (redirect to last page or empty state)
-/page/:pageId   → AppLayout → PageEditor
-```
-
-### 3.4 Editor Integration
-- Use `@blocknote/react`'s `useCreateBlockNote()` hook
-- Initialize with saved content from Firestore (`initialContent`)
-- Auto-save on `onChange` with **debounce (1.5s)** to avoid excessive writes
-- Support default block types: paragraph, headings, lists, to-do, code, image, table, callout
-
-### Deliverable
-- Fully functional Notion-like editor with sidebar navigation
+**Deliverable:** Fully functional table view with custom properties.
 
 ---
 
-## Phase 4: Polish & UX
+## Phase 4: Database — Board (Kanban) View (~1 hr)
 
-### 4.1 Visual Design
-- **Dark mode** with a rich, modern aesthetic (dark sidebar, slightly lighter editor)
-- **Smooth transitions** — sidebar collapse/expand, page switching
-- **Hover micro-animations** on sidebar items
-- **Empty state** — friendly illustration + "Create your first page" CTA
-- **Loading skeletons** while Firestore data loads
+- Board view: columns grouped by a `select` property
+- Drag-and-drop cards between columns
+- Card shows title + key properties
+- Add card directly to a column
 
-### 4.2 Features
-- **Emoji picker** for page icons (lightweight inline picker)
-- **Keyboard shortcuts:** `Cmd+N` (new page), `Cmd+\\` (toggle sidebar)
-- **Responsive:** sidebar auto-collapses on narrow screens
-- **Unsaved indicator** — subtle dot while auto-save is pending
-- **Toast notifications** — save confirmation, errors
+**Deliverable:** Kanban board view for any database.
 
-### 4.3 Performance
-- Lazy-load the editor component (`React.lazy`)
-- Firestore query pagination if page count grows large
-- Memoize page list to avoid re-renders
+---
 
-### Deliverable
-- A polished, premium-feeling app ready for daily use
+## Phase 5: Views, Filters, Sorting (~1 hr)
+
+- Multiple views per database (tab bar)
+- Create/switch/delete views
+- Sort rules (by any property, asc/desc)
+- Filter rules (equals, contains, gt, lt, is_empty, etc.)
+- View-specific visible properties
+
+**Deliverable:** Power-user features for slicing data.
+
+---
+
+## Phase 6: Polish & UX (~1 hr)
+
+- Dark mode with premium aesthetic
+- Sidebar collapse/expand animation
+- Loading skeletons
+- Empty states
+- Keyboard shortcuts (Cmd+N, Cmd+\\)
+- Toast notifications
+- Responsive layout
+- Emoji picker for icons
+
+**Deliverable:** A polished, premium-feeling app.
 
 ---
 
@@ -179,72 +111,97 @@ service cloud.firestore {
 slate/
 ├── index.html
 ├── package.json
+├── vite.config.ts
 ├── tailwind.config.ts
 ├── tsconfig.json
-├── vite.config.ts
-├── .env.example              # Firebase config template
+├── .env
+├── .env.example
 ├── public/
 │   └── favicon.svg
 ├── src/
-│   ├── main.tsx              # Entry point
-│   ├── App.tsx               # Router setup
-│   ├── index.css             # Tailwind imports + global styles
+│   ├── main.tsx
+│   ├── App.tsx
+│   ├── index.css
+│   │
+│   ├── types/
+│   │   └── index.ts                 # Item, PropertyDefinition, ViewDefinition, etc.
+│   │
 │   ├── config/
-│   │   └── firebase.ts       # Firebase init
+│   │   └── firebase.ts              # Firebase init
+│   │
 │   ├── contexts/
-│   │   └── AuthContext.tsx    # Auth provider + hook
-│   ├── components/
-│   │   ├── AppLayout.tsx
-│   │   ├── Sidebar.tsx
-│   │   ├── PageList.tsx
-│   │   ├── PageListItem.tsx
-│   │   ├── PageEditor.tsx
-│   │   ├── SearchBar.tsx
-│   │   ├── UserMenu.tsx
-│   │   ├── LoginPage.tsx
-│   │   ├── ProtectedRoute.tsx
-│   │   └── EmptyState.tsx
+│   │   └── AuthContext.tsx           # Auth provider + useAuth hook
+│   │
 │   ├── services/
-│   │   └── pages.ts          # Firestore CRUD
+│   │   └── items.ts                 # Firestore CRUD for items
+│   │
 │   ├── hooks/
-│   │   ├── useAuth.ts
-│   │   ├── usePages.ts       # Page list hook
-│   │   └── usePage.ts        # Single page hook
-│   └── types/
-│       └── index.ts          # Shared TypeScript types
-└── firestore.rules           # Security rules (for deployment)
+│   │   ├── useItems.ts              # Top-level items (sidebar)
+│   │   ├── useItem.ts               # Single item
+│   │   └── useDatabaseRows.ts       # Rows of a database
+│   │
+│   ├── components/
+│   │   ├── layout/
+│   │   │   ├── AppLayout.tsx
+│   │   │   ├── Sidebar.tsx
+│   │   │   └── SidebarItem.tsx
+│   │   │
+│   │   ├── auth/
+│   │   │   ├── LoginPage.tsx
+│   │   │   └── ProtectedRoute.tsx
+│   │   │
+│   │   ├── page/
+│   │   │   └── PageEditor.tsx        # BlockNote editor for pages & rows
+│   │   │
+│   │   ├── database/
+│   │   │   ├── DatabaseView.tsx       # Container: view tabs + active view
+│   │   │   ├── TableView.tsx
+│   │   │   ├── BoardView.tsx
+│   │   │   ├── ListView.tsx
+│   │   │   ├── PropertyEditor.tsx     # Add/edit properties (columns)
+│   │   │   ├── RowModal.tsx           # Row opened as page
+│   │   │   └── cells/                 # Property value renderers
+│   │   │       ├── TextCell.tsx
+│   │   │       ├── NumberCell.tsx
+│   │   │       ├── SelectCell.tsx
+│   │   │       ├── MultiSelectCell.tsx
+│   │   │       ├── DateCell.tsx
+│   │   │       └── CheckboxCell.tsx
+│   │   │
+│   │   ├── shared/
+│   │   │   ├── EmojiPicker.tsx
+│   │   │   ├── EmptyState.tsx
+│   │   │   └── LoadingSkeleton.tsx
+│   │   │
+│   │   └── ui/
+│   │       ├── Button.tsx
+│   │       ├── Input.tsx
+│   │       ├── Dropdown.tsx
+│   │       ├── Modal.tsx
+│   │       └── Toast.tsx
+│   │
+│   └── utils/
+│       ├── filters.ts                # Apply filter rules to rows
+│       └── sorting.ts                # Apply sort rules to rows
+│
+└── firestore.rules
 ```
 
 ---
 
 ## Implementation Order
 
-| Step | Phase | Estimated Effort |
+| # | Task | Phase |
 |---|---|---|
-| 1 | Scaffold Vite + Tailwind + deps | ~10 min |
-| 2 | Firebase config + Auth + Login page | ~20 min |
-| 3 | Firestore data model + CRUD service | ~15 min |
-| 4 | Sidebar + page list + routing | ~25 min |
-| 5 | BlockNote editor integration + auto-save | ~20 min |
-| 6 | Polish: dark mode, animations, empty states | ~20 min |
-| 7 | Keyboard shortcuts, emoji picker, responsive | ~15 min |
-
----
-
-## Prerequisites (User Action Required)
-
-> [!IMPORTANT]
-> Before building, you'll need to:
-> 1. **Create a Firebase project** at [console.firebase.google.com](https://console.firebase.google.com)
-> 2. **Enable Google Sign-In** under Authentication → Sign-in method
-> 3. **Create a Firestore database** (start in test mode, we'll add rules later)
-> 4. **Copy your Firebase config** (apiKey, authDomain, projectId, etc.) — we'll store these in a `.env` file
-
----
-
-## Open Questions
-
-1. **Do you want to set up Firebase now, or should I scaffold with placeholder config and you'll fill in credentials later?**
-2. **Any preference on Tailwind CSS version?** Your plan says Tailwind — I'll use **v4** (latest) unless you prefer v3.
-3. **Do you want nested pages / sub-pages** (like Notion's tree structure), or flat pages for v1?
-4. **Should I include a trash/archive view**, or just soft-delete for now?
+| 1 | Scaffold + install deps | 1 |
+| 2 | Firebase config + Auth flow | 1 |
+| 3 | Types (Item, Property, View) | 2 |
+| 4 | Firestore CRUD service | 2 |
+| 5 | Sidebar + page creation | 2 |
+| 6 | BlockNote page editor + auto-save | 2 |
+| 7 | Database creation + property editor | 3 |
+| 8 | Table view + inline editing | 3 |
+| 9 | Row-as-page modal | 3 |
+| 10 | Board (Kanban) view | 4 |
+| 11 | Filters + sorting + view management | 5 |
+| 12 | Dark mode + animations + polish | 6 |

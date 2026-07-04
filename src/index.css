@@ -1338,3 +1338,238 @@ body {
   margin-top: 16px;
 }
 
+/* ─── Views Navigation Bar ─── */
+.database-views-bar {
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.views-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.view-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border: 1px solid transparent;
+  border-bottom: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-bottom: -1px;
+  user-select: none;
+  transition: all var(--transition-fast);
+}
+
+.view-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.view-tab.active {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.delete-view-tab {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.delete-view-tab:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.add-view-tab {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.add-view-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+/* ─── Toolbar Group By ─── */
+.toolbar-group-by {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-by-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.group-by-select {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  outline: none;
+  cursor: pointer;
+}
+
+/* ─── Kanban Board View ─── */
+.board-wrapper {
+  overflow-x: auto;
+  padding-bottom: 24px;
+}
+
+.board-columns {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.board-column {
+  flex: 1;
+  min-width: 280px;
+  max-width: 320px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid var(--border-subtle);
+}
+
+.board-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 4px 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.board-column-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.board-column-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--border-color);
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.board-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 200px;
+}
+
+.board-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.board-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--text-muted);
+}
+
+.board-card:active {
+  cursor: grabbing;
+}
+
+.board-card-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.board-card-props {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
+.board-card-prop {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+}
+
+.board-card-prop-name {
+  color: var(--text-secondary);
+}
+
+.board-card-prop-value {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.board-add-card-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: left;
+  padding: 8px;
+  cursor: pointer;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.board-add-card-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.board-error {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+

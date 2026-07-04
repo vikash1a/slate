@@ -3,6 +3,7 @@ import type { Item } from '@/types';
 import { archiveItem } from '@/services/items';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
+import { useToast } from '@/contexts/ToastContext';
 
 interface SidebarItemProps {
   item: Item;
@@ -13,6 +14,7 @@ export default function SidebarItem({ item }: SidebarItemProps) {
   const { itemId } = useParams();
   const { user } = useAuth();
   const [showActions, setShowActions] = useState(false);
+  const { showToast } = useToast();
   const isActive = itemId === item.id;
 
   const handleClick = () => {
@@ -26,9 +28,14 @@ export default function SidebarItem({ item }: SidebarItemProps) {
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) return;
-    await archiveItem(user.uid, item.id);
-    if (isActive) {
-      navigate('/');
+    try {
+      await archiveItem(user.uid, item.id);
+      showToast(`"${item.title || 'Untitled'}" moved to trash`, 'success');
+      if (isActive) {
+        navigate('/');
+      }
+    } catch {
+      showToast('Failed to delete item', 'error');
     }
   };
 

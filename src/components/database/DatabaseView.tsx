@@ -12,6 +12,7 @@ import BoardView from './BoardView';
 import RowModal from './RowModal';
 import PropertyEditor from './PropertyEditor';
 import FilterSortModal from './FilterSortModal';
+import EmojiPicker from '@/components/shared/EmojiPicker';
 
 export default function DatabaseView() {
   const { itemId } = useParams<{ itemId: string }>();
@@ -183,7 +184,12 @@ export default function DatabaseView() {
     <div className="database-view">
       {/* Header */}
       <div className="database-header">
-        <span className="database-icon">{database.icon}</span>
+        <EmojiPicker
+          currentIcon={database.icon}
+          onSelect={(emoji) => {
+            if (user) updateItem(user.uid, database.id, { icon: emoji });
+          }}
+        />
         <input
           className="database-title"
           value={title}

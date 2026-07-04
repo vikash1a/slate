@@ -1,13 +1,37 @@
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useItems } from '@/hooks/useItems';
 import { createItem } from '@/services/items';
 import SidebarItem from './SidebarItem';
 
-export default function Sidebar() {
+interface SidebarProps {
+  isCollapsed: boolean;
+  onToggle: () => void;
+}
+
+export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const { user, signOut } = useAuth();
   const { items, loading } = useItems();
+  const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcut: Cmd+Shift+N (New Page) and Cmd+Alt+N (New Database)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        handleNewPage();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        handleNewDatabase();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [user]);
 
   const handleNewPage = async () => {
     if (!user) return;
@@ -21,8 +45,12 @@ export default function Sidebar() {
     navigate(`/db/${id}`);
   };
 
+  const filteredItems = items.filter((item) =>
+    (item.title || 'Untitled').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       {/* Header */}
       <div className="sidebar-header">
         <div className="sidebar-logo">
@@ -60,6 +88,13 @@ export default function Sidebar() {
           </svg>
           <span className="sidebar-logo-text">Slate</span>
         </div>
+        <button
+          className="sidebar-collapse-btn"
+          onClick={onToggle}
+          title="Collapse sidebar (Cmd+\)"
+        >
+          ⪡
+        </button>
       </div>
 
       {/* Actions */}
@@ -74,6 +109,25 @@ export default function Sidebar() {
         </button>
       </div>
 
+      {/* Search Input */}
+      <div className="sidebar-search">
+        <input
+          ref={searchInputRef}
+          className="sidebar-search-input"
+          placeholder="🔍 Search pages..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        {searchQuery && (
+          <button
+            className="sidebar-search-clear"
+            onClick={() => setSearchQuery('')}
+          >
+            ×
+          </button>
+        )}
+      </div>
+
       {/* Items List */}
       <div className="sidebar-content">
         {loading ? (
@@ -82,13 +136,13 @@ export default function Sidebar() {
             <div className="sidebar-skeleton" />
             <div className="sidebar-skeleton" />
           </div>
-        ) : items.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <p className="sidebar-placeholder">
-            No pages yet. Create one to get started!
+            {searchQuery ? 'No matching pages' : 'No pages yet. Create one!'}
           </p>
         ) : (
           <div className="sidebar-items">
-            {items.map((item) => (
+            {filteredItems.map((item) => (
               <SidebarItem key={item.id} item={item} />
             ))}
           </div>

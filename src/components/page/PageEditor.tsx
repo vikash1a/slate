@@ -7,6 +7,7 @@ import '@blocknote/mantine/style.css';
 import { useItem } from '@/hooks/useItem';
 import { updateItem } from '@/services/items';
 import { useAuth } from '@/contexts/AuthContext';
+import EmojiPicker from '@/components/shared/EmojiPicker';
 
 export default function PageEditor() {
   const { itemId } = useParams<{ itemId: string }>();
@@ -116,7 +117,12 @@ export default function PageEditor() {
   return (
     <div className="page-editor">
       <div className="page-editor-header">
-        <span className="page-editor-icon">{item.icon}</span>
+        <EmojiPicker
+          currentIcon={item.icon}
+          onSelect={(emoji) => {
+            if (user) updateItem(user.uid, item.id, { icon: emoji });
+          }}
+        />
         <input
           ref={titleInputRef}
           className="page-editor-title"

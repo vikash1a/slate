@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useItems } from '@/hooks/useItems';
 import { createItem } from '@/services/items';
 import SidebarItem from './SidebarItem';
+import { useToast } from '@/contexts/ToastContext';
+import { createSampleData } from '@/utils/sampleData';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -14,6 +16,8 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const { user, signOut } = useAuth();
   const { items, loading } = useItems();
   const [searchQuery, setSearchQuery] = useState('');
+  const [loadingSample, setLoadingSample] = useState(false);
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,6 +47,20 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     if (!user) return;
     const id = await createItem(user.uid, 'database');
     navigate(`/db/${id}`);
+  };
+
+  const handleLoadSample = async () => {
+    if (!user) return;
+    setLoadingSample(true);
+    try {
+      await createSampleData(user.uid);
+      showToast('Loaded sample welcome page and task board!', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to load sample data', 'error');
+    } finally {
+      setLoadingSample(false);
+    }
   };
 
   const filteredItems = items.filter((item) =>
@@ -137,9 +155,20 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             <div className="sidebar-skeleton" />
           </div>
         ) : filteredItems.length === 0 ? (
-          <p className="sidebar-placeholder">
-            {searchQuery ? 'No matching pages' : 'No pages yet. Create one!'}
-          </p>
+          <div className="sidebar-placeholder-container">
+            <p className="sidebar-placeholder">
+              {searchQuery ? 'No matching pages' : 'No pages yet.'}
+            </p>
+            {!searchQuery && (
+              <button
+                className="sidebar-sample-btn"
+                onClick={handleLoadSample}
+                disabled={loadingSample}
+              >
+                {loadingSample ? 'Loading...' : '⚡ Load Sample Data'}
+              </button>
+            )}
+          </div>
         ) : (
           <div className="sidebar-items">
             {filteredItems.map((item) => (

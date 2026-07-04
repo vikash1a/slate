@@ -4,6 +4,7 @@ import LoginPage from '@/components/auth/LoginPage';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import PageEditor from '@/components/page/PageEditor';
+import DatabaseView from '@/components/database/DatabaseView';
 
 function WelcomePage() {
   return (
@@ -45,7 +46,7 @@ export default function App() {
           >
             <Route index element={<WelcomePage />} />
             <Route path="page/:itemId" element={<PageEditor />} />
-            <Route path="db/:itemId" element={<DatabasePlaceholder />} />
+            <Route path="db/:itemId" element={<DatabaseView />} />
           </Route>
         </Routes>
       </AuthProvider>

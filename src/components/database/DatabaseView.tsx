@@ -4,11 +4,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useItem } from '@/hooks/useItem';
 import { useDatabaseRows } from '@/hooks/useDatabaseRows';
 import { updateItem } from '@/services/items';
-import type { PropertyDefinition, ViewDefinition, ViewType } from '@/types';
+import type { PropertyDefinition, ViewDefinition, ViewType, FilterRule, SortRule } from '@/types';
+import { applyFilterRules } from '@/utils/filters';
+import { applySortRules } from '@/utils/sorting';
 import TableView from './TableView';
 import BoardView from './BoardView';
 import RowModal from './RowModal';
 import PropertyEditor from './PropertyEditor';
+import FilterSortModal from './FilterSortModal';
 
 export default function DatabaseView() {
   const { itemId } = useParams<{ itemId: string }>();
@@ -16,6 +19,7 @@ export default function DatabaseView() {
   const { item: database, loading: dbLoading } = useItem(itemId);
   const { rows, loading: rowsLoading } = useDatabaseRows(itemId);
   const [showPropertyEditor, setShowPropertyEditor] = useState(false);
+  const [showFilterSortModal, setShowFilterSortModal] = useState(false);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [titleInitialized, setTitleInitialized] = useState(false);
@@ -97,6 +101,25 @@ export default function DatabaseView() {
     setShowPropertyEditor(false);
   };
 
+  const handleSaveFiltersAndSorts = async (filters: FilterRule[], sortBy: SortRule[]) => {
+    if (!user || !itemId || !activeViewId || !database) return;
+    const currentViews = database.views || {};
+    const activeViewObj = currentViews[activeViewId];
+    if (!activeViewObj) return;
+
+    const updatedView = {
+      ...activeViewObj,
+      filters,
+      sortBy,
+    };
+    const updatedViews = {
+      ...currentViews,
+      [activeViewId]: updatedView,
+    };
+    await updateItem(user.uid, itemId, { views: updatedViews });
+    setShowFilterSortModal(false);
+  };
+
   const handleAddView = async (type: ViewType) => {
     if (!user || !itemId || !database) return;
     const viewId = 'view_' + Math.random().toString(36).slice(2, 9);
@@ -150,6 +173,11 @@ export default function DatabaseView() {
   const selectProperties = Object.entries(database.properties || {}).filter(
     ([, prop]) => prop.type === 'select' || prop.type === 'multi_select'
   );
+
+  // Apply sorting and filtering
+  const activeFilters = activeView?.filters || [];
+  const activeSorts = activeView?.sortBy || [];
+  const processedRows = applySortRules(applyFilterRules(rows, activeFilters), activeSorts);
 
   return (
     <div className="database-view">
@@ -214,6 +242,15 @@ export default function DatabaseView() {
           ⚙ Properties
         </button>
 
+        {hasProperties && (
+          <button
+            className="toolbar-btn"
+            onClick={() => setShowFilterSortModal(true)}
+          >
+            👁️ Filter & Sort {activeFilters.length > 0 || activeSorts.length > 0 ? `(${activeFilters.length + activeSorts.length})` : ''}
+          </button>
+        )}
+
         {activeView?.type === 'board' && selectProperties.length > 0 && (
           <div className="toolbar-group-by">
             <span className="group-by-label">Group by:</span>
@@ -232,7 +269,7 @@ export default function DatabaseView() {
         )}
 
         <span className="toolbar-info">
-          {rows.length} {rows.length === 1 ? 'row' : 'rows'}
+          {processedRows.length} {processedRows.length === 1 ? 'row' : 'rows'}
         </span>
       </div>
 
@@ -265,7 +302,7 @@ export default function DatabaseView() {
         ) : (
           <BoardView
             database={database}
-            rows={rows}
+            rows={processedRows}
             onRowClick={(rowId) => setSelectedRowId(rowId)}
             groupByPropId={groupByPropId}
           />
@@ -273,7 +310,7 @@ export default function DatabaseView() {
       ) : (
         <TableView
           database={database}
-          rows={rows}
+          rows={processedRows}
           onRowClick={(rowId) => setSelectedRowId(rowId)}
         />
       )}
@@ -284,6 +321,17 @@ export default function DatabaseView() {
           properties={database.properties || {}}
           onSave={handleSaveProperties}
           onClose={() => setShowPropertyEditor(false)}
+        />
+      )}
+
+      {/* Filter & Sort Config Modal */}
+      {showFilterSortModal && (
+        <FilterSortModal
+          properties={database.properties || {}}
+          filters={activeFilters}
+          sortBy={activeSorts}
+          onSave={handleSaveFiltersAndSorts}
+          onClose={() => setShowFilterSortModal(false)}
         />
       )}
 

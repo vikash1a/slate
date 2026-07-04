@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createItem, updateItem } from '@/services/items';
-import type { Item, PropertyDefinition, PropertyValue, SelectOption } from '@/types';
+import type { Item, PropertyDefinition, PropertyValue } from '@/types';
 
 interface BoardViewProps {
   database: Item;
@@ -205,7 +205,7 @@ interface BoardCardProps {
 function BoardCard({ row, properties, groupByPropId, onClick, onDragStart }: BoardCardProps) {
   // Get other visible properties to show on the card
   const visibleProps = Object.entries(properties).filter(
-    ([id, prop]) => id !== groupByPropId && row.propertyValues?.[id] != null
+    ([id]) => id !== groupByPropId && row.propertyValues?.[id] != null
   );
 
   return (
@@ -223,7 +223,7 @@ function BoardCard({ row, properties, groupByPropId, onClick, onDragStart }: Boa
             return (
               <div key={id} className="board-card-prop">
                 <span className="board-card-prop-name">{prop.name}:</span>
-                <span className="board-card-prop-value">{renderCardPropVal(prop, val)}</span>
+                <span className="board-card-prop-value">{renderCardPropVal(prop, val ?? null)}</span>
               </div>
             );
           })}

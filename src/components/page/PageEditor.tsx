@@ -83,7 +83,7 @@ export default function PageEditor() {
   const handleTitleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      editor?.focus('end');
+      editor?.focus();
     }
   };
 

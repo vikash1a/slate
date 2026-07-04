@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { createItem, updateItem, archiveItem } from '@/services/items';
-import type { Item, PropertyDefinition, PropertyValue } from '@/types';
+import type { Item, PropertyValue } from '@/types';
 import CellRenderer from './cells/CellRenderer';
 
 interface TableViewProps {

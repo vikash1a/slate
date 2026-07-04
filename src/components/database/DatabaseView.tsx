@@ -22,18 +22,21 @@ export default function DatabaseView() {
   const [activeViewId, setActiveViewId] = useState<string>('');
   const [groupByPropId, setGroupByPropId] = useState<string>('');
 
-  // Sync title from database
-  if (database && !titleInitialized) {
-    setTitle(database.title);
-    setTitleInitialized(true);
-  }
-
-  // Reset when itemId changes
-  if (database && database.id !== itemId) {
+  // Reset states when the route ID changes
+  useEffect(() => {
+    setTitle('');
     setTitleInitialized(false);
     setActiveViewId('');
     setGroupByPropId('');
-  }
+  }, [itemId]);
+
+  // Sync title from database when it loads
+  useEffect(() => {
+    if (database && !titleInitialized) {
+      setTitle(database.title);
+      setTitleInitialized(true);
+    }
+  }, [database, titleInitialized]);
 
   // Views initialization/handling
   const views = database?.views || {};

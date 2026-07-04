@@ -96,6 +96,23 @@ export default function PropertyEditor({ properties, onSave, onClose }: Property
     blue: '#1e40af', purple: '#6b21a8', pink: '#9d174d', gray: '#374151',
   };
 
+  const handleSave = () => {
+    let finalProps = { ...props };
+    if (newPropName.trim()) {
+      const id = generateId();
+      const newProp: PropertyDefinition = {
+        name: newPropName.trim(),
+        type: newPropType,
+        order: Object.keys(props).length,
+      };
+      if (newPropType === 'select' || newPropType === 'multi_select') {
+        newProp.options = [];
+      }
+      finalProps = { ...finalProps, [id]: newProp };
+    }
+    onSave(finalProps);
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
@@ -184,7 +201,7 @@ export default function PropertyEditor({ properties, onSave, onClose }: Property
           <button className="btn-secondary" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn-primary" onClick={() => onSave(props)}>
+          <button className="btn-primary" onClick={handleSave}>
             Save Properties
           </button>
         </div>
